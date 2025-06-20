@@ -7,6 +7,7 @@
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>3.5.0</version>
         <relativePath/> <!-- lookup parent from repository -->
+        <!--ilias-->
     </parent>
     <groupId>com.marketplace.catalogue</groupId>
     <artifactId>catalogue-service</artifactId>
