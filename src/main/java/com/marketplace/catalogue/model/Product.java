@@ -42,9 +42,5 @@ public class Product {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-    
-    // Enum for status values
-    public enum ProductStatus {
-        disponible, supprimé, rupture
-    }
+
 }
