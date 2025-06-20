@@ -19,7 +19,7 @@ public class ProductMeta {
     
     private Double basePrice;
     
-    private UUID categoryId;
+    private String category;
     
     private String thumbnailUrl;
     

@@ -27,13 +27,16 @@ public class Product {
     
     @Column(name = "category_id", nullable = false)
     private UUID categoryId;
+
+    @Column(name = "base_price", nullable = false)
+    private Double basePrice;
     
     @Column(nullable = false, length = 20)
     @Enumerated(EnumType.STRING)
     private ProductStatus status;
     
-    @Column(name = "thumbnail_url", nullable = false, columnDefinition = "TEXT")
-    private String thumbnailUrl;
+    @Column(name = "thumbnail_media_id", nullable = false, columnDefinition = "TEXT")
+    private String thumbnailMediaId;
     
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
