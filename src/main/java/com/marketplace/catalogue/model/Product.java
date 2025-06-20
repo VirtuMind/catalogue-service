@@ -18,19 +18,22 @@ import java.util.UUID;
 public class Product {
     @Id
     private UUID id;
-    
+
     @Column(nullable = false, length = 255)
     private String name;
-    
+
     @Column(columnDefinition = "TEXT")
     private String description;
-    
+
     @Column(name = "category_id", nullable = false)
     private UUID categoryId;
 
     @Column(name = "base_price", nullable = false)
     private Double basePrice;
-    
+
+    @Column(name = "inventory", nullable = false)
+    private Integer inventory;
+
     @Column(nullable = false, length = 20)
     @Enumerated(EnumType.STRING)
     private ProductStatus status;
@@ -41,7 +44,7 @@ public class Product {
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
-    
+
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;

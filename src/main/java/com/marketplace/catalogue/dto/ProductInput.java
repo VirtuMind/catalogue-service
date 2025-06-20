@@ -15,31 +15,31 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProductInput {
+
     @NotBlank(message = "Product name is required")
     private String name;
-    
+
     private String description;
-    
+
     @NotNull(message = "Category ID is required")
     private UUID categoryId;
-    
+
+    @NotNull(message = "Base price is required")
+    private Double basePrice;
+
+    @NotNull(message = "Inventory count is required")
+    private Integer inventory;
+
     @NotBlank(message = "Status is required")
     private String status; // enum: [disponible, supprimé, rupture]
 
     @NotNull(message = "Thumbnail file is required")
     private MultipartFile thumbnailFile;
-    
+
     private List<MultipartFile> mediaFiles;
-    
-    @NotNull(message = "Base price is required")
-    private Float basePrice;
-    
+
     private Discount discount;
-    
-    @NotNull(message = "Inventory is required")
-    private Integer inventory;
-    
-    @Data
+
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Discount {
