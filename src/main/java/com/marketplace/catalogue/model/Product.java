@@ -1,5 +1,4 @@
 package com.marketplace.catalogue.model;
-
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -9,10 +8,10 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
-
+@Data
 @Entity
 @Table(name = "products")
-@Data
+
 @NoArgsConstructor
 @AllArgsConstructor
 public class Product {
@@ -44,15 +43,9 @@ public class Product {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+
     public enum ProductStatus {
         disponible, supprimé, rupture
-    }
-    public UUID getId() {
-        return this.id;
-    }
-
-    public void setId(UUID id) {
-        this.id = id;
     }
 
 }
