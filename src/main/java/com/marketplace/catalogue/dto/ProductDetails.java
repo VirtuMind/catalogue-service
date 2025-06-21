@@ -19,23 +19,5 @@ public class ProductDetails extends ProductMeta {
     
     private Integer inventory;
     
-    private Reviews reviews;
-    
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class Discount {
-        private Float discountPercentage;
-        private Float discountPrice;
-        private LocalDate startDate;
-        private LocalDate endDate;
-    }
-
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class Reviews {
-        private Float averageRating;
-        private Integer count;
-    }
+    private List<Review> reviews;
 }

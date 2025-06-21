@@ -23,22 +23,22 @@ public class ProductController {
     }
 
     @GetMapping("/{productId}")
-    public ResponseEntity<ProductDetails> getProductDetails(@PathVariable UUID productId) {
+    public ResponseEntity<Object> getProductDetails(@PathVariable UUID productId) {
         ProductDetails productDetails = productService.getProductDetails(productId);
         if (productDetails != null) {
             return ResponseEntity.ok(productDetails);
         } else {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Product not found with ID: " + productId);
         }
     }
 
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Product> createProduct(@ModelAttribute @Valid ProductInput input) {
+    @PostMapping(path = "/" , consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Object> createProduct(@ModelAttribute @Valid ProductInput input) {
 
-        Product result = productService.createProduct(input);
-        if (result == null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        }
-        return ResponseEntity.status(HttpStatus.CREATED).body(result);
+//        Product result = productService.createProduct(input);
+//        if (result == null) {
+//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+//        }
+        return ResponseEntity.status(HttpStatus.CREATED).body("");
     }
 }
