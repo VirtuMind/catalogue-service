@@ -39,7 +39,7 @@ public class Product {
     private ProductStatus status;
     
     @Column(name = "thumbnail_media_id", nullable = false, columnDefinition = "TEXT")
-    private String thumbnailMediaId;
+    private UUID thumbnailMediaId;
     
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
