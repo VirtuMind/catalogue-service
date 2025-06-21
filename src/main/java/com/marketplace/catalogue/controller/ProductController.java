@@ -35,10 +35,10 @@ public class ProductController {
     @PostMapping(path = "/" , consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Object> createProduct(@ModelAttribute @Valid ProductInput input) {
 
-//        Product result = productService.createProduct(input);
-//        if (result == null) {
-//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-//        }
-        return ResponseEntity.status(HttpStatus.CREATED).body("");
+        Product result = productService.createProduct(input);
+        if (result == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+        return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
 }
