@@ -23,5 +23,5 @@ public class ProductMeta {
     
     private String thumbnailUrl;
     
-    private ProductStatus status; // enum: [disponible, supprimé, rupture]
+    private ProductStatus status;
 }

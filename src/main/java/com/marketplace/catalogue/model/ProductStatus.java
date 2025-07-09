@@ -1,7 +1,7 @@
 package com.marketplace.catalogue.model;
 
 public enum ProductStatus {
-    disponible,
-    supprimé,
-    rupture
+    available,
+    deleted,
+    out_of_stock
 }

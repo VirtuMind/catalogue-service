@@ -37,8 +37,8 @@ public class ProductInput {
     private Integer inventory;
 
     @NotBlank(message = "Status is required")
-    @Pattern(regexp = "disponible|supprimé|rupture",
-            message = "Status must be 'disponible', 'supprimé', or 'rupture'")
+    @Pattern(regexp = "available|deleted |out_of_stock",
+            message = "Status must be 'available', 'deleted', or 'out_of_stock'")
     private String status;
 
     @NotNull(message = "Thumbnail image is required")
