@@ -31,15 +31,9 @@ public class Product {
     @Column(name = "base_price", nullable = false)
     private Double basePrice;
 
-    @Column(name = "inventory", nullable = false)
-    private Integer inventory;
-
     @Column(nullable = false, length = 20)
     @Enumerated(EnumType.STRING)
     private ProductStatus status;
-    
-    @Column(name = "thumbnail_media_id", nullable = false, columnDefinition = "TEXT")
-    private UUID thumbnailMediaId;
     
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

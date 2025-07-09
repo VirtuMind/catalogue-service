@@ -4,8 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 @Data
 @NoArgsConstructor
@@ -13,16 +13,15 @@ import java.util.UUID;
 public class Reviews {
     private Double averageRating;
     private Integer count;
-    private List<Items> items;
+    private List<ReviewItem> items;
 
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
-    private static class Items {
-        private UUID userId;
+    public static class ReviewItem {
         private String comment;
-        private Integer rating;
-        private String date;
+        private Double rating;
+        private String userId;
+        private LocalDateTime createdAt;
     }
-
 }

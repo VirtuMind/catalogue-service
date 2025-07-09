@@ -6,6 +6,13 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 @Configuration
 public class WebClientConfig {
+    /**
+     * It matches the name of the function with the name of parameter passed to the constructor
+     * of each service client. This is a convention used in Spring to automatically inject
+     * the correct WebClient instance into each service client.
+     */
+
+
     @Bean
     public WebClient ariaClient() { // Auth service
         return WebClient.builder()

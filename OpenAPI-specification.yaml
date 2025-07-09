@@ -1,0 +1,807 @@
+openapi: 3.0.3
+info:
+  title: Service Catalogue Produits
+  description: >
+    Le service catalogue produits (REPERTOIRE) permet de gérer les informations détaillées ou descriptives (métadonnées) des produits. Il permet de récupérer soit la liste de tous les produits, soit un produit spécifique (métadonnées seules ou touts les details).
+    Il permet aussi de gérer les catégories de produits.
+    
+      (`GET`) endpoints sont ouverts au public et ne nécessitent pas d'authentification.
+    Par contre, les autres opérations CRUD (`ADD`/`UPDATE`/`DELETE`) sont restreintes aux administrateurs et nécessitent un JWT token valide.
+
+      Pour l'opération de suppressions (`DELETE`), le service utilise une suppression logique (Soft Delete) pour éviter la perte de données. Les produits ou les catégories supprimés ne sont plus visibles dans les listes, mais restent accessibles via leur ID.
+
+      Les données détaillés telles que les remises (promotions), les médias (images/videos), la quantité en stock et les avis clients sont fournies à partir d'autre services: 
+    
+      | Service     | Données fournies                                          |
+      |-------------|-----------------------------------------------------------|
+      | *ORNAMENTO* | Les remises sur les produits  (discounts)               |
+      | *SCENA*     | Fichiers médias (images, vidéos)  |
+      | *METRONOME* | Quantité en stock disponible (inventory)     |
+      | *ECHO*      | Avis d'utilisateurs (reviews) |
+    
+      **Notez Bien**: En cas d’indisponibilité temporaire, d’erreur réseau, d’absence de déploiement ou d’environnement de test, les données récupérées depuis des services externes peuvent être retournées avec la valeur `null`. Le client doit être préparé à gérer ce cas.
+    
+      **Contact :**
+
+    Pour toute question ou demande liée à ce service, n'hésitez pas à nous contactez :
+
+    - **Younes Khoubaz**  
+      younes.khoubaz@uit.ac.ma  
+      +212 687-749447
+
+    - **Ilias Jebrane**  
+      ilias.jebrane@uit.ac.ma  
+      +212 623-906985
+
+  version: 1.0.0
+
+servers:
+  # Added by API Auto Mocking Plugin
+  - description: SwaggerHub API Auto Mocking
+    url: https://virtserver.swaggerhub.com/ibntofailuniversity-16d/service-catalogue-produits/1.0.0
+  - url: https://api.example.com
+    description: Serveur de production
+security:
+  - bearerAuth: []
+tags:
+  - name: Produits
+    description: Opérations sur les produits
+  - name: Categories
+    description: Opérations sur les catégories
+
+paths:
+  /products:
+    post:
+      tags:
+        - Produits
+      summary: Ajouter un produit avec détails complets
+      operationId: createProduct
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/ProductInput"
+      responses:
+        "201":
+          description: Produit créé avec détails complets
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/ProductDetails"
+              example:
+                success: true
+                status: 201
+                message: "Produit créé avec succès"
+                data: null
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    get:
+      tags:
+        - Produits
+      summary: Récupérer la liste des produits (détails complets)
+      operationId: listProductsFull
+      parameters:
+        - in: query
+          name: categoryId
+          schema:
+            type: string
+          description: Filtrer par identifiant de catégorie
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [available, deleted, out_of_stock]
+          description: Filtrer par statut du produit (available, deleted, out_of_stock)
+      responses:
+        "200":
+          description: Liste des détails complets des produits
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/ProductDetails"
+              example:
+                success: true
+                status: 200
+                message: "Liste des produits récupérée avec succès"
+                data: []
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /products/{productId}:
+    parameters:
+      - in: path
+        name: productId
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Identifiant unique du produit
+    get:
+      tags:
+        - Produits
+      summary: Récupérer les détails complets d'un produit spécifique
+      operationId: getProductDetailsById
+      responses:
+        "200":
+          description: Détails complets du produit
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/ProductDetails"
+              example:
+                success: true
+                status: 200
+                message: "Détails du produit récupérés avec succès"
+                data: {}
+    put:
+      tags:
+        - Produits
+      summary: Mettre à jour un produit (tous champs sauf avis)
+      operationId: updateProduct
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/ProductInput"
+      responses:
+        "200":
+          description: Produit mis à jour
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/ProductDetails"
+              example:
+                success: true
+                status: 200
+                message: "Produit mis à jour avec succès"
+                data: null
+    delete:
+      tags:
+        - Produits
+      summary: Supprimer un produit (Soft Delete)
+      operationId: deleteProduct
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: Produit supprimé
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: string
+              example:
+                success: true
+                status: 204
+                message: "Produit supprimé avec succès"
+                data: null
+  /products/meta:
+    get:
+      tags:
+        - Produits
+      summary: Récupérer la liste des produits (métadonnées seulement)
+      operationId: listProductsMeta
+      parameters:
+        - in: query
+          name: categoryId
+          schema:
+            type: string
+          description: Filtrer par identifiant de catégorie
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [available, deleted, out_of_stock]
+          description: Filtrer par statut du produit (available, deleted, out_of_stock)
+      responses:
+        "200":
+          description: Liste des métadonnées des produits
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/ProductMeta"
+              example:
+                success: true
+                status: 200
+                message: "Métadonnées des produits récupérées avec succès"
+                data: []
+  /products/meta/{productId}:
+    parameters:
+      - in: path
+        name: productId
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Identifiant unique du produit
+    get:
+      tags:
+        - Produits
+      summary: Récupérer les métadonnées d'un produit spécifique
+      operationId: getProductMetaById
+      responses:
+        "200":
+          description: Métadonnées du produit
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/ProductMeta"
+              example:
+                success: true
+                status: 200
+                message: "Métadonnées du produit récupérées avec succès"
+                data: {}
+
+  /categories:
+    get:
+      tags:
+        - Categories
+      summary: Récupérer la liste de toutes les catégories non supprimés
+      operationId: getAllCategories
+      responses:
+        "200":
+          description: Liste de toutes les catégories
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/CategoryResponse"
+              example:
+                success: true
+                status: 200
+                message: "Liste des catégories récupérée avec succès"
+                data: []
+    post:
+      tags:
+        - Categories
+      summary: Créer une nouvelle catégorie
+      operationId: createCategory
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryInput"
+      responses:
+        "201":
+          description: Catégorie créée avec succès
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/CategoryResponse"
+              example:
+                success: true
+                status: 201
+                message: "Catégorie créée avec succès"
+        "400":
+          description: Données d'entrée invalides
+        "409":
+          description: Catégorie avec ce nom existe déjà
+  /categories/{categoryId}:
+    parameters:
+      - in: path
+        name: categoryId
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Identifiant unique de la catégorie
+    get:
+      tags:
+        - Categories
+      summary: Récupérer une catégorie spécifique par ID
+      operationId: getCategoryById
+      responses:
+        "200":
+          description: Détails de la catégorie
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/CategoryResponse"
+              example:
+                success: true
+                status: 200
+                message: "Catégorie récupérée avec succès"
+                data: {}
+        "404":
+          description: Catégorie non trouvée
+    put:
+      tags:
+        - Categories
+      summary: Mettre à jour une catégorie existante
+      operationId: updateCategory
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryInput"
+      responses:
+        "200":
+          description: Catégorie mise à jour avec succès
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/CategoryResponse"
+              example:
+                success: true
+                status: 200
+                message: "Catégorie mise à jour avec succès"
+                data: null
+        "400":
+          description: Données d'entrée invalides
+        "404":
+          description: Catégorie non trouvée
+        "409":
+          description: Catégorie avec ce nom existe déjà
+    delete:
+      tags:
+        - Categories
+      summary: Supprimer une catégorie (Soft Delete)
+      operationId: deleteCategory
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: Catégorie supprimée avec succès
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+              example:
+                success: true
+                status: 204
+                message: "Catégorie supprimée avec succès"
+                data: null
+        "400":
+          description: Impossible de supprimer - catégorie contient des produits
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+        "404":
+          description: Catégorie non trouvée
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ApiResponse:
+      type: object
+      description: Structure de réponse standardisée pour toutes les endpoints
+      properties:
+        success:
+          type: boolean
+          description: Indique si l'opération a réussi (true) ou échoué (false)
+          example: true
+        status:
+          type: integer
+          description: Code de statut HTTP de la réponse
+          example: 200
+        message:
+          type: string
+          description: Message descriptif de l'opération
+          example: "Données récupérées avec succès"
+        data:
+          description: Données de réponse (peut être un objet, un tableau, ou null)
+          example: null
+      required:
+        - success
+        - status
+        - message
+      example:
+        success: true
+        status: 200
+        message: "Données récupérées avec succès"
+        data: []
+    ProductInput:
+      type: object
+      description: Schéma pour création ou mise à jour de produit
+      properties:
+        name:
+          type: string
+          description: Nom du produit
+        description:
+          type: string
+          description: Description détaillée du produit
+        categoryId:
+          type: string
+          description: Identifiant de la catégorie du produit
+        status:
+          type: string
+          enum: [available, deleted, out_of_stock]
+          description: >
+            Statut du produit :
+            - `available` (en vente),
+            - `deleted` (non listé),
+            - `out_of_stock` (stock épuisé).
+            Ce champ peut être mis à jour manuellement,
+            mais est également automatiquement mis à `rupture` si le stock (`inventory`) est nul.
+        thumbnailFile:
+          type: string
+          format: binary
+          description: Fichier du média principal (thumbnail)
+        mediaFiles:
+          type: array
+          items:
+            type: string
+            format: binary
+          description: Fichiers d'images ou vidéos à uploader
+        basePrice:
+          type: number
+          format: float
+          description: Prix de base du produit (sans remises)
+        discount:
+          type: object
+          description: Remise active provenant d'Ornamento
+          properties:
+            discountPercentage:
+              type: number
+            discountPrice:
+              type: number
+            startDate:
+              type: string
+              format: date
+            endDate:
+              type: string
+              format: date
+        inventory:
+          type: integer
+          description: Quantité en stock récupérée depuis Inventaire
+      required:
+        [
+          name,
+          categoryId,
+          status,
+          description,
+          basePrice,
+          inventory,
+        ]
+    ProductMeta:
+      type: object
+      description: Métadonnées de base d'un produit
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identifiant unique du produit
+        name:
+          type: string
+          description: Nom du produit
+        description:
+          type: string
+          description: Description détaillée du produit
+        basePrice:
+          type: number
+          format: float
+          description: Prix de base du produit (sans remises)
+        category:
+          type: string
+          description: La catégorie du produit
+        thumbnailUrl:
+          type: string
+          nullable: true
+          description: Média principal (thumbnail) récupérée depuis le service Media
+        status:
+          type: string
+          enum: [available, deleted, out_of_stock]
+          description: >
+            Statut du produit :
+            - `available` (en vente),
+            - `deleted` (non listé),
+            - `out_of_stock` (stock épuisé).
+            Ce champ peut être mis à jour manuellement,
+            mais est également automatiquement mis à `rupture` si le stock (`inventory`) est nul.
+    ProductDetails:
+      allOf:
+        - $ref: "#/components/schemas/ProductMeta"
+        - type: object
+          description: Détails complets d'un produit
+          properties:
+            mediaUrls:
+              type: array
+              nullable: true
+              description: Fichiers d'images ou vidéos récupérées depuis le service Media
+              items:
+                type: string
+                format: binary
+
+            basePrice:
+              type: number
+              format: float
+              description: Prix de base du produit (sans remises)
+            discount:
+              type: object
+              description: Remise active provenant d'Ornamento
+              nullable: true
+              properties:
+                discountPercentage:
+                  type: number
+                discountPrice:
+                  type: number
+                startDate:
+                  type: string
+                  format: date
+                endDate:
+                  type: string
+                  format: date
+            inventory:
+              type: integer
+              description: Quantité en stock récupérée depuis Inventaire
+              nullable: true
+            reviews:
+              type: object
+              description: Informations agrégées des avis clients
+              nullable: true
+              properties:
+                averageRating:
+                  type: number
+                  format: float
+                  description: Note moyenne des avis
+                count:
+                  type: integer
+                  description: Nombre total d'avis
+                items:
+                  type: array
+                  description: Liste des avis individuels
+                  items:
+                    type: object
+                    properties:
+                      comment:
+                        type: string
+                        description: Commentaire de l'utilisateur
+                      rating:
+                        type: number
+                        format: float
+                        description: Note donnée par l'utilisateur
+                      userId:
+                        type: string
+                        description: Identifiant de l'utilisateur ayant posté l'avis
+                      createdAt:
+                        type: string
+                        format: date-time
+                        description: Date de création de l'avis
+    CategoryInput:
+      type: object
+      description: Schéma pour création ou mise à jour de catégorie
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+          description: Nom de la catégorie
+      required:
+        - name
+    CategoryResponse:
+      type: object
+      description: Réponse complète d'une catégorie
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identifiant unique de la catégorie
+        name:
+          type: string
+          description: Nom de la catégorie
+        isDeleted:
+          type: boolean
+          description: Indique si la catégorie est supprimée (Soft Delete)
+        createdAt:
+          type: string
+          format: date-time
+          description: Date de création de la catégorie
+        updatedAt:
+          type: string
+          format: date-time
+          description: Date de dernière mise à jour de la catégorie
+  responses:
+    BadRequest:
+      description: Requête invalide
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiResponse"
+              - type: object
+                properties:
+                  data:
+                    type: object
+          examples:
+            validation_error:
+              summary: Erreur de validation
+              value:
+                success: false
+                status: 400
+                message: "Données d'entrée invalides"
+                data: null
+            parameter_error:
+              summary: Paramètre invalide
+              value:
+                success: false
+                status: 400
+                message: "Paramètres invalides: Format UUID invalide"
+                data: null
+
+    Unauthorized:
+      description: Non autorisé - Token manquant ou invalide
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiResponse"
+              - type: object
+                properties:
+                  data:
+                    type: object
+          example:
+            success: false
+            status: 401
+            message: "Token invalide ou expiré"
+            data: null
+
+    NotFound:
+      description: Ressource non trouvée
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiResponse"
+              - type: object
+                properties:
+                  data:
+                    type: object
+          examples:
+            product_not_found:
+              summary: Produit non trouvé
+              value:
+                success: false
+                status: 404
+                message: "Produit non trouvé avec l'ID: 123e4567-e89b-12d3-a456-426614174000"
+                data: null
+            category_not_found:
+              summary: Catégorie non trouvée
+              value:
+                success: false
+                status: 404
+                message: "Catégorie non trouvée avec l'ID: 123e4567-e89b-12d3-a456-426614174000"
+                data: null
+
+    Conflict:
+      description: Conflit - Ressource déjà existante ou contrainte violée
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiResponse"
+              - type: object
+                properties:
+                  data:
+                    type: object
+          examples:
+            duplicate_category:
+              summary: Catégorie en conflit
+              value:
+                success: false
+                status: 409
+                message: "Une catégorie avec ce nom existe déjà"
+                data: null
+            category_has_products:
+              summary: Catégorie contient des produits
+              value:
+                success: false
+                status: 409
+                message: "Impossible de supprimer - catégorie contient des produits"
+                data: null
+
+    InternalServerError:
+      description: Erreur interne du serveur
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiResponse"
+              - type: object
+                properties:
+                  data:
+                    type: object
+          example:
+            success: false
+            status: 500
+            message: "Une erreur interne du serveur s'est produite"
+            data: null

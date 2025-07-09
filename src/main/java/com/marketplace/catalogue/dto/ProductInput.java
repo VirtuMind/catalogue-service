@@ -37,7 +37,7 @@ public class ProductInput {
     private Integer inventory;
 
     @NotBlank(message = "Status is required")
-    @Pattern(regexp = "available|deleted |out_of_stock",
+    @Pattern(regexp = "available|deleted|out_of_stock",
             message = "Status must be 'available', 'deleted', or 'out_of_stock'")
     private String status;
 

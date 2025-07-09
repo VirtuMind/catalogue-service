@@ -1,6 +1,6 @@
 package com.marketplace.catalogue.controller;
 
-import com.marketplace.catalogue.config.GlobalExceptionHandler.ApiError;
+import com.marketplace.catalogue.dto.ApiResponse;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.boot.web.servlet.error.ErrorController;
@@ -12,14 +12,20 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/error")
 public class CustomErrorController implements ErrorController {
     @RequestMapping
-    public ResponseEntity<ApiError> handleError(HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<Void>> handleError(HttpServletRequest request) {
         Object statusObj = request.getAttribute(RequestDispatcher.ERROR_STATUS_CODE);
         int status = statusObj != null ? Integer.parseInt(statusObj.toString()) : 500;
 
         if (status == 404) {
-            return ResponseEntity.status(404).body(new ApiError(404, "Resource not found - check the URL for a typo or a missing parameter"));
+            return ResponseEntity.status(404)
+                    .body(ApiResponse.notFound("Ressource non trouvée - vérifiez l'URL pour une faute de frappe ou un paramètre manquant"));
         }
 
-        return ResponseEntity.status(status).body(new ApiError(status, "An unexpected error occurred: " + request.getAttribute(RequestDispatcher.ERROR_MESSAGE)));
+        String errorMessage = request.getAttribute(RequestDispatcher.ERROR_MESSAGE) != null 
+                ? request.getAttribute(RequestDispatcher.ERROR_MESSAGE).toString() 
+                : "Erreur inconnue";
+        
+        return ResponseEntity.status(status)
+                .body(ApiResponse.error(status, "Une erreur inattendue s'est produite: " + errorMessage));
     }
 }

@@ -1,6 +1,8 @@
 package com.marketplace.catalogue.config;
 
+import com.marketplace.catalogue.dto.ApiResponse;
 import jakarta.validation.constraints.*;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -11,48 +13,99 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-    public record ApiError(int status, String message, List<String> errors) {
-        public ApiError(int status, String message) {
-            this(status, message, null);
-        }
-    }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     @ResponseStatus(HttpStatus.METHOD_NOT_ALLOWED)
-    public ResponseEntity<ApiError> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
-        ApiError error = new ApiError(HttpStatus.METHOD_NOT_ALLOWED.value(), "Resource found but Method not allowed: " + ex.getMessage() + ", if the method is correct, check the request URL.");
-        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(error);
+    public ResponseEntity<ApiResponse<Void>> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
+        String message = "Méthode non autorisée: " + ex.getMethod() + 
+                        ". Méthodes supportées: " + ex.getSupportedHttpMethods();
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
+                .body(ApiResponse.error(405, message));
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    @ResponseStatus(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+    public ResponseEntity<ApiResponse<Void>> handleMediaTypeNotSupported(HttpMediaTypeNotSupportedException ex) {
+        String message = "Type de média non supporté: " + ex.getContentType() + 
+                        ". Types supportés: " + ex.getSupportedMediaTypes();
+        return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+                .body(ApiResponse.error(415, message));
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ResponseEntity<ApiError> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
-        String message = String.format("Invalid value '%s' for parameter '%s'. Expected type: %s.",
+    public ResponseEntity<ApiResponse<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        String message = String.format("Valeur invalide '%s' pour le paramètre '%s'. Type attendu: %s",
                 ex.getValue(), ex.getName(), ex.getRequiredType().getSimpleName());
-        ApiError error = new ApiError(HttpStatus.BAD_REQUEST.value(), message);
-        return ResponseEntity.badRequest().body(error);
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.badRequest(message));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ResponseEntity<ApiError> handleValidationException(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ApiResponse<List<String>>> handleValidationException(MethodArgumentNotValidException ex) {
         List<String> errors = ex.getBindingResult().getFieldErrors().stream()
                 .map(this::buildValidationErrorMessage)
                 .collect(Collectors.toList());
 
-        ApiError error = new ApiError(
-                HttpStatus.BAD_REQUEST.value(),
-                "Invalid input data",
-                errors
-        );
-        return ResponseEntity.badRequest().body(error);
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.badRequest("Données d'entrée invalides", errors));
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    @ResponseStatus(HttpStatus.PAYLOAD_TOO_LARGE)
+    public ResponseEntity<ApiResponse<Void>> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException ex) {
+        String message = "La taille du fichier dépasse la limite autorisée: " + ex.getMaxUploadSize() + " octets";
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+                .body(ApiResponse.error(413, message));
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ResponseEntity<ApiResponse<Void>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        String message = "Violation de l'intégrité des données";
+        if (ex.getMessage().contains("Duplicate entry")) {
+            message = "Entrée dupliquée: Un enregistrement avec ces informations existe déjà";
+        } else if (ex.getMessage().contains("foreign key constraint")) {
+            message = "Violation de contrainte de clé étrangère: L'entité référencée n'existe pas";
+        }
+        
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.conflict(message));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ResponseEntity<ApiResponse<Void>> handleIllegalArgument(IllegalArgumentException ex) {
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.badRequest(ex.getMessage()));
+    }
+
+    @ExceptionHandler(RuntimeException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ResponseEntity<ApiResponse<Void>> handleRuntimeException(RuntimeException ex) {
+        // Check if it's a service unavailable exception
+        if (ex.getMessage().contains("service") || ex.getMessage().contains("Service")) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(ApiResponse.serviceUnavailable("Service externe temporairement indisponible: " + ex.getMessage()));
+        }
+        
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.internalServerError("Une erreur interne du serveur s'est produite: " + ex.getMessage()));
+    }
+
+    @ExceptionHandler(Exception.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ResponseEntity<ApiResponse<Void>> handleGenericException(Exception ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.internalServerError("Une erreur inattendue s'est produite: " + ex.getMessage()));
     }
 
     private String buildValidationErrorMessage(FieldError fieldError) {
@@ -61,43 +114,23 @@ public class GlobalExceptionHandler {
         Object rejectedValue = fieldError.getRejectedValue();
 
         StringBuilder errorMsg = new StringBuilder();
-        errorMsg.append("Field '").append(field).append("': ");
+        errorMsg.append("Champ '").append(field).append("': ");
 
-        // Handle specific validation annotations
-        if (fieldError.contains(NotNull.class)) {
-            errorMsg.append("must not be null");
-        } else if (fieldError.contains(NotBlank.class)) {
-            errorMsg.append("must not be blank");
-        } else if (fieldError.contains(NotEmpty.class)) {
-            errorMsg.append("must not be empty");
-        } else if (fieldError.contains(Size.class)) {
-            errorMsg.append("size must be between ")
-                    .append(fieldError.unwrap(Size.class).min())
-                    .append(" and ")
-                    .append(fieldError.unwrap(Size.class).max());
-        } else if (fieldError.contains(Pattern.class)) {
-            errorMsg.append("must match pattern: ")
-                    .append(fieldError.unwrap(Pattern.class).regexp());
-        } else if (fieldError.contains(Min.class)) {
-            errorMsg.append("must be ≥ ")
-                    .append(fieldError.unwrap(Min.class).value());
-        } else if (fieldError.contains(Max.class)) {
-            errorMsg.append("must be ≤ ")
-                    .append(fieldError.unwrap(Max.class).value());
+        // Use the default message if available, otherwise build custom message
+        if (message != null && !message.isEmpty()) {
+            errorMsg.append(message);
         } else {
-            errorMsg.append(message != null ? message : "invalid value");
+            errorMsg.append("valeur invalide");
         }
 
         // Add rejected value if available
         if (rejectedValue != null) {
-            errorMsg.append(" (received: '").append(rejectedValue).append("')");
+            errorMsg.append(" (reçu: '").append(rejectedValue).append("')");
         } else {
-            errorMsg.append(" (received null)");
+            errorMsg.append(" (reçu: null)");
         }
 
         return errorMsg.toString();
     }
-
-
 }
 

@@ -3,7 +3,7 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
-OpenAPI-specification.yaml
+#OpenAPI-specification.yaml
 
 ### STS ###
 .apt_generated
