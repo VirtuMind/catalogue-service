@@ -61,21 +61,6 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_7A51E36017334094838E9F1711BFE8DC }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_E1C523453225413BAA2104A4DA91785C }}
 
-      - name: Set Azure App Settings
-        run: |
-          az webapp config appsettings set --name repertoire \
-            --resource-group repertoire-webservice \
-            --settings \
-              SPRING_DATASOURCE_URL="jdbc:mysql://repertoire-webservice-mysql-server-az-students.mysql.database.azure.com:3306/catalogue_api?useSSL=true&requireSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true" \
-              SPRING_DATASOURCE_USERNAME="admin_user" \
-              SPRING_DATASOURCE_PASSWORD="${{ secrets.DB_PASSWORD }}" \
-              SPRING_DATASOURCE_DRIVER_CLASS_NAME="com.mysql.cj.jdbc.Driver" \
-              SPRING_JPA_HIBERNATE_DDL_AUTO="update" \
-              SPRING_JPA_SHOW_SQL="false" \
-              SPRING_JPA_DATABASE_PLATFORM="org.hibernate.dialect.MySQLDialect" \
-              JAVA_OPTS="-Dserver.port=80"
-        shell: bash
-
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
@@ -83,3 +68,12 @@ jobs:
           app-name: "repertoire"
           slot-name: "Production"
           package: "*.jar"
+        env:
+          SPRING_DATASOURCE_URL: "jdbc:mysql://repertoire-webservice-mysql-server-az-students.mysql.database.azure.com:3306/catalogue_api?useSSL=true&requireSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true"
+          SPRING_DATASOURCE_USERNAME: "admin_user"
+          SPRING_DATASOURCE_PASSWORD: "${{ secrets.DB_PASSWORD }}"
+          SPRING_DATASOURCE_DRIVER_CLASS_NAME: "com.mysql.cj.jdbc.Driver"
+          SPRING_JPA_HIBERNATE_DDL_AUTO: "update"
+          SPRING_JPA_SHOW_SQL: "false"
+          SPRING_JPA_DATABASE_PLATFORM: "org.hibernate.dialect.MySQLDialect"
+          JAVA_OPTS: "-Dserver.port=80"
