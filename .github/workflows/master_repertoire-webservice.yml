@@ -71,8 +71,7 @@ jobs:
         uses: azure/webapps-deploy@v3
         with:
           app-name: "repertoire-webservice"
-          slot-name: "Production"
-          package: "/target/*.jar"
+          package: "catalogue-service-0.0.1-SNAPSHOT.jar"
         env:
           SPRING_DATASOURCE_URL: "jdbc:mysql://repertoire-webservice-mysql-server-az-students.mysql.database.azure.com:3306/catalogue_api?useSSL=true&requireSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true"
           SPRING_DATASOURCE_USERNAME: "admin_user"
