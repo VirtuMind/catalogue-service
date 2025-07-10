@@ -1,6 +1,6 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
 # More GitHub Actions for Azure: https://github.com/Azure/actions
-name: Build and deploy WAR app to Azure Web App - repertoire
+name: Build and deploy JAR app to Azure Web App - repertoire
 
 on:
   push:
@@ -10,66 +10,79 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     permissions:
       contents: read
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Java version
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'microsoft'
-      
-      # If your Spring Boot app needs database connection during build/tests
-      # you might need to set environment variables here
+          java-version: "17"
+          distribution: "microsoft"
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
       - name: Build with Maven
-        run: mvn clean install -DskipTests
-        # Note: Added -DskipTests to skip tests during build
-        # Remove this if you want to run tests, but ensure test database is available
-      
+        run: mvn clean package -DskipTests
+        # Note: Using 'package' instead of 'install' for JAR creation
+        # Added -DskipTests to skip tests during build
+
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: java-app
-          path: '${{ github.workspace }}/target/*.war'
+          path: "${{ github.workspace }}/target/*.jar"
 
   deploy:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     needs: build
+    environment:
+      name: "Production"
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     permissions:
       id-token: write
       contents: read
-    
+
     steps:
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
           name: java-app
-      
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_C795008035B4448C9A69EC797AA88C16 }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_7A51E36017334094838E9F1711BFE8DC }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_E1C523453225413BAA2104A4DA91785C }}
-      
-      - name: Set Azure App Settings (MySQL)
+
+      - name: Set Azure App Settings
         run: |
           az webapp config appsettings set --name repertoire \
             --resource-group repertoire-webservice \
-            --settings SPRING_DATASOURCE_URL="jdbc:mysql://repertoire-webservice-mysql-server-az-students.mysql.database.azure.com:3306/catalogue_api?useSSL=true&requireSSL=false&serverTimezone=UTC" \
-                     SPRING_DATASOURCE_USERNAME="admin_user@repertoire-webservice-mysql-server-az-students" \
-                     SPRING_DATASOURCE_PASSWORD="${{ secrets.DB_PASSWORD }}" \
-                     SPRING_DATASOURCE_DRIVER_CLASS_NAME="com.mysql.cj.jdbc.Driver"
+            --settings \
+              SPRING_DATASOURCE_URL="jdbc:mysql://repertoire-webservice-mysql-server-az-students.mysql.database.azure.com:3306/catalogue_api?useSSL=true&requireSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true" \
+              SPRING_DATASOURCE_USERNAME="admin_user" \
+              SPRING_DATASOURCE_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+              SPRING_DATASOURCE_DRIVER_CLASS_NAME="com.mysql.cj.jdbc.Driver" \
+              SPRING_JPA_HIBERNATE_DDL_AUTO="update" \
+              SPRING_JPA_SHOW_SQL="false" \
+              SPRING_JPA_DATABASE_PLATFORM="org.hibernate.dialect.MySQLDialect" \
+              JAVA_OPTS="-Dserver.port=80"
         shell: bash
-      
+
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'repertoire'
-          slot-name: 'Production'
-          package: '*.war'
+          app-name: "repertoire"
+          slot-name: "Production"
+          package: "*.jar"
