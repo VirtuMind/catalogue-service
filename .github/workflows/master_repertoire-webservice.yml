@@ -61,11 +61,6 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_7A51E36017334094838E9F1711BFE8DC }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_E1C523453225413BAA2104A4DA91785C }}
 
-      - name: List files for debugging
-        run: |
-          ls -la
-          ls -lR
-
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
@@ -74,7 +69,7 @@ jobs:
           package: "catalogue-service-0.0.1-SNAPSHOT.jar"
         env:
           SPRING_DATASOURCE_URL: "jdbc:mysql://repertoire-webservice-mysql-server-az-students.mysql.database.azure.com:3306/catalogue_api?useSSL=true&requireSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true"
-          SPRING_DATASOURCE_USERNAME: "admin_user"
+          SPRING_DATASOURCE_USERNAME: "admin_user@repertoire-webservice-mysql-server-az-students"
           SPRING_DATASOURCE_PASSWORD: "${{ secrets.DB_PASSWORD }}"
           SPRING_DATASOURCE_DRIVER_CLASS_NAME: "com.mysql.cj.jdbc.Driver"
           SPRING_JPA_HIBERNATE_DDL_AUTO: "update"
