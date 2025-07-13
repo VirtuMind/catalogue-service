@@ -93,7 +93,10 @@ public class ScenaServiceClient {
         try {
             // Make API call to SCENA service
             ScenaMediaItemResponse response = webClient.get()
-                    .uri("/thumbnail/{productId}", productId)
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/thumbnail")
+                            .queryParam("id_product", productId)
+                            .build())
                     .retrieve()
                     .bodyToMono(ScenaMediaItemResponse.class)
                     .timeout(Duration.ofSeconds(5))
@@ -116,7 +119,10 @@ public class ScenaServiceClient {
         try {
             // Make API call to SCENA service
             List<ScenaMediaItemResponse> response = webClient.get()
-                    .uri("/media/{productId}", productId)
+                    .uri((uriBuilder -> uriBuilder
+                            .path("/media")
+                            .queryParam("id_product", productId)
+                            .build()))
                     .retrieve()
                     .bodyToMono(new ParameterizedTypeReference<List<ScenaMediaItemResponse>>() {})
                     .timeout(Duration.ofSeconds(10))
@@ -128,6 +134,77 @@ public class ScenaServiceClient {
         } catch (Exception e) {
             // Service unavailable, return null
             return null;
+        }
+    }
+
+    /**
+     * Retrieves all media Ids for a product
+     * @param productId the product ID
+     * @return list of media URLs or null if service unavailable
+     */
+    public List<String> getProductMediaIds(UUID productId) {
+        try {
+            // Make API call to SCENA service
+            List<ScenaMediaItemResponse> response = webClient.get()
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/media")
+                            .queryParam("id_product", productId)
+                            .build())
+                    .retrieve()
+                    .bodyToMono(new ParameterizedTypeReference<List<ScenaMediaItemResponse>>() {})
+                    .timeout(Duration.ofSeconds(10))
+                    .block();
+
+            return response != null ? response.stream()
+                    .map(ScenaMediaItemResponse::getId)
+                    .toList() : null;
+        } catch (Exception e) {
+            // Service unavailable, return null
+            return null;
+        }
+    }
+
+    /**
+     * Deletes the thumbnail for a product
+     * @param productId
+     * @return true if successful, false if service unavailable or error
+     */
+    public boolean deleteThumbnail(UUID productId) {
+        try {
+            webClient.delete()
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/thumbnail")
+                            .queryParam("id_product", productId)
+                            .build())
+                    .retrieve()
+                    .bodyToMono(Void.class)
+                    .timeout(Duration.ofSeconds(5))
+                    .block();
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Deletes the thumbnail for a product
+     * @param mediaId
+     * @return true if successful, false if service unavailable or error
+     */
+    public boolean deleteMedia(String mediaId) {
+        try {
+            webClient.delete()
+                    .uri((uriBuilder -> uriBuilder
+                            .path("/media")
+                            .queryParam("id_media", mediaId)
+                            .build()))
+                    .retrieve()
+                    .bodyToMono(Void.class)
+                    .timeout(Duration.ofSeconds(5))
+                    .block();
+            return true;
+        } catch (Exception e) {
+            return false;
         }
     }
 }

@@ -1,9 +1,12 @@
 package com.marketplace.catalogue.service.impl;
 
 import com.marketplace.catalogue.client.*;
+import com.marketplace.catalogue.dto.Discount;
 import com.marketplace.catalogue.dto.ProductDetails;
 import com.marketplace.catalogue.dto.ProductInput;
 import com.marketplace.catalogue.dto.ProductMeta;
+import com.marketplace.catalogue.dto.external.MetronomeInventoryRequest;
+import com.marketplace.catalogue.dto.external.OrnamentoDiscountRequest;
 import com.marketplace.catalogue.dto.external.ScenaUploadResponse;
 import com.marketplace.catalogue.model.Category;
 import com.marketplace.catalogue.model.Product;
@@ -190,6 +193,31 @@ public class ProductServiceImpl implements ProductService {
                 }
             }
         }
+
+        // Send inventory to METRONOME service
+        MetronomeInventoryRequest request = new MetronomeInventoryRequest(
+                savedProduct.getId().toString(),
+                input.getInventory()
+        );
+        boolean result =  metronomeServiceClient.increaseProductInventory(request);
+        if (!result) {
+            throw new RuntimeException("Failed to add product inventory in METRONOME service");
+        }
+
+        // Send discount to ORNAMENTO service if provided
+        if (input.getDiscount() != null) {
+            OrnamentoDiscountRequest discountRequest = new OrnamentoDiscountRequest(
+                    savedProduct.getId().toString(),
+                    input.getDiscount().getDiscountPercentage(),
+                    input.getDiscount().getStartDate(),
+                    input.getDiscount().getEndDate()
+            );
+            boolean discountResult = ornamentoServiceClient.addNewProductDiscount(discountRequest);
+            if (!discountResult) {
+                throw new RuntimeException("Failed to add product discount in ORNAMENTO service");
+            }
+        }
+
         
         // Return full product details
         return getProductDetails(savedProduct.getId());
@@ -203,27 +231,90 @@ public class ProductServiceImpl implements ProductService {
             return null;
         }
         
-        // Update thumbnail if provided
+        // Update thumbnail if provided by deleting the old one and uploading the new one
         if (input.getThumbnailFile() != null && !input.getThumbnailFile().isEmpty()) {
+            // Delete old thumbnail from SCENA service
+            boolean result = scenaServiceClient.deleteThumbnail(existingProduct.getId());
+            if (!result) {
+                throw new RuntimeException("Failed to delete old thumbnail from media service");
+            }
             ScenaUploadResponse thumbnailResponse = scenaServiceClient.uploadThumbnail(
                     input.getThumbnailFile(), productId);
             if (thumbnailResponse == null) {
-                throw new RuntimeException("Failed to upload thumbnail to media service");
+                throw new RuntimeException("Failed to upload new thumbnail to media service");
             }
         }
         
-        // Upload additional media files if provided (loop through each file)
+        // Update media files if provided by deleting old ones and uploading new ones
         if (input.getMediaFiles() != null && !input.getMediaFiles().isEmpty()) {
+            //Get all existing media files for the product
+            List<String> existingMediaIds = scenaServiceClient.getProductMediaIds(productId);
+
+            // Delete old media files from SCENA service
+            for (String mediaId : existingMediaIds) {
+                boolean result = scenaServiceClient.deleteMedia(mediaId);
+                if (!result) {
+                    throw new RuntimeException("Failed to delete old media file from media service");
+                }
+            }
+
+            // Upload new media file to SCENA service
             for (MultipartFile mediaFile : input.getMediaFiles()) {
                 ScenaUploadResponse mediaResponse = scenaServiceClient.uploadMediaFile(
                         mediaFile, productId);
                 if (mediaResponse == null) {
-                    // Log warning but don't fail the entire operation
-                    System.err.println("Warning: Failed to upload media file " + mediaFile.getOriginalFilename());
+                    throw new RuntimeException("Failed to upload new media file to media service");
                 }
             }
         }
-        
+
+        // Update inventory in METRONOME service by calculating the difference
+        Integer currentInventory = metronomeServiceClient.getProductInventory(productId);
+        if (currentInventory == null) {
+            throw new RuntimeException("Failed to retrieve current inventory from METRONOME service");
+        }
+        int inventoryDifference = input.getInventory() - currentInventory;
+        if (inventoryDifference > 0) {
+            MetronomeInventoryRequest inventoryRequest = new MetronomeInventoryRequest(
+                    productId.toString(),
+                    inventoryDifference
+            );
+            boolean inventoryResult = metronomeServiceClient.increaseProductInventory(inventoryRequest);
+            if (!inventoryResult) {
+                throw new RuntimeException("Failed to increase product inventory in METRONOME service");
+            }
+        }
+        else if (inventoryDifference < 0) {
+            // If inventory is decreasing, we need to handle it accordingly
+            MetronomeInventoryRequest inventoryRequest = new MetronomeInventoryRequest(
+                    productId.toString(),
+                    Math.abs(inventoryDifference)
+            );
+            boolean inventoryResult = metronomeServiceClient.decreaseProductInventory(inventoryRequest);
+            if (!inventoryResult) {
+                throw new RuntimeException("Failed to decrease product inventory in METRONOME service");
+            }
+        }
+        // If inventory is unchanged, we do nothing
+
+        // Update discount in ORNAMENTO service if provided by deleting the old one and adding the new one
+        if (input.getDiscount() != null) {
+            // Get existing discount from ORNAMENTO service
+            Long existingDiscountId = ornamentoServiceClient.getProductDiscountId(productId);
+
+            // Update discount
+            OrnamentoDiscountRequest discountRequest = new OrnamentoDiscountRequest(
+                    productId.toString(),
+                    input.getDiscount().getDiscountPercentage(),
+                    input.getDiscount().getStartDate(),
+                    input.getDiscount().getEndDate()
+            );
+            boolean discountResult = ornamentoServiceClient.updateProductDiscount(productId.toString(), discountRequest);
+            if (!discountResult) {
+                throw new RuntimeException("Failed to add new product discount in ORNAMENTO service");
+            }
+        }
+
         // Update product fields
         existingProduct.setName(input.getName());
         existingProduct.setDescription(input.getDescription());
