@@ -18,15 +18,12 @@ public class ScenaMediaItemResponse {
     @JsonProperty("product_id")
     private String productId;
     
-    @JsonProperty("file_name")
-    private String fileName;
-    
     @JsonProperty("file_url")
     private String fileUrl;
     
     @JsonProperty("file_type")
     private String fileType; // "image" or "video"
-    
-    @JsonProperty("created_at")
-    private LocalDateTime createdAt;
+
+    @JsonProperty("is_thumbnail")
+    private Boolean is_thumbnail;
 }

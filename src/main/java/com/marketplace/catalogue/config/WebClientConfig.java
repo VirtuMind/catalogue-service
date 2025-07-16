@@ -23,7 +23,7 @@ public class WebClientConfig {
     @Bean
     public WebClient metronomeClient() { // Stock service
         return WebClient.builder()
-                .baseUrl("http://metronome-service")
+                .baseUrl("https://microservice-metronome-production.up.railway.app")
                 .build();
     }
 

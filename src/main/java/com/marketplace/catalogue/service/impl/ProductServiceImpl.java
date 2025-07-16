@@ -174,35 +174,35 @@ public class ProductServiceImpl implements ProductService {
         Product savedProduct = productRepository.save(product);
         
         // Upload thumbnail to SCENA service
-//        if (input.getThumbnailFile() != null && !input.getThumbnailFile().isEmpty()) {
-//            ScenaUploadResponse thumbnailResponse = scenaServiceClient.uploadMediaFile(
-//                    input.getThumbnailFile(), savedProduct.getId(), true);
-//            if (thumbnailResponse == null) {
-//                throw new RuntimeException("Failed to upload thumbnail to media service");
-//            }
-//        }
-//
-//        // Upload additional media files to SCENA service (loop through each file)
-//        if (input.getMediaFiles() != null && !input.getMediaFiles().isEmpty()) {
-//            for (MultipartFile mediaFile : input.getMediaFiles()) {
-//                ScenaUploadResponse mediaResponse = scenaServiceClient.uploadMediaFile(
-//                        mediaFile, savedProduct.getId(), false);
-//                if (mediaResponse == null) {
-//                    // Log warning but don't fail the entire operation
-//                    System.err.println("Warning: Failed to upload media file " + mediaFile.getOriginalFilename());
-//                }
-//            }
-//        }
+        if (input.getThumbnailFile() != null && !input.getThumbnailFile().isEmpty()) {
+            ScenaUploadResponse thumbnailResponse = scenaServiceClient.uploadMediaFile(
+                    input.getThumbnailFile(), savedProduct.getId(), true);
+            if (thumbnailResponse == null) {
+                throw new RuntimeException("Failed to upload thumbnail to media service");
+            }
+        }
+
+        // Upload additional media files to SCENA service (loop through each file)
+        if (input.getMediaFiles() != null && !input.getMediaFiles().isEmpty()) {
+            for (MultipartFile mediaFile : input.getMediaFiles()) {
+                ScenaUploadResponse mediaResponse = scenaServiceClient.uploadMediaFile(
+                        mediaFile, savedProduct.getId(), false);
+                if (mediaResponse == null) {
+                    // Log warning but don't fail the entire operation
+                    System.err.println("Warning: Failed to upload media file " + mediaFile.getOriginalFilename());
+                }
+            }
+        }
 
         // Send inventory to METRONOME service
-//        MetronomeInventoryRequest request = new MetronomeInventoryRequest(
-//                savedProduct.getId().toString(),
-//                input.getInventory()
-//        );
-//        boolean result =  metronomeServiceClient.increaseProductInventory(request);
-//        if (!result) {
-//            throw new RuntimeException("Failed to add product inventory in METRONOME service");
-//        }
+        MetronomeInventoryRequest request = new MetronomeInventoryRequest(
+                savedProduct.getId().toString(),
+                input.getInventory()
+        );
+        boolean result =  metronomeServiceClient.increaseProductInventory(request);
+        if (!result) {
+            throw new RuntimeException("Failed to add product inventory in METRONOME service");
+        }
 
         // Send discount to ORNAMENTO service if provided
         if (input.getDiscount() != null) {
