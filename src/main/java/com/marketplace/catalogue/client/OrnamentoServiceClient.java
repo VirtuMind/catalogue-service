@@ -1,5 +1,6 @@
 package com.marketplace.catalogue.client;
 
+import com.marketplace.catalogue.config.TokenHolder;
 import com.marketplace.catalogue.dto.Discount;
 import com.marketplace.catalogue.dto.external.OrnamentoDiscountRequest;
 import com.marketplace.catalogue.dto.external.OrnamentoDiscountResponse;
@@ -13,9 +14,11 @@ import java.util.UUID;
 public class OrnamentoServiceClient {
     
     private final WebClient webClient;
+    private final TokenHolder tokenHolder;
     
-    public OrnamentoServiceClient(WebClient ornamentoClient) {
+    public OrnamentoServiceClient(WebClient ornamentoClient, TokenHolder tokenHolder) {
         this.webClient = ornamentoClient;
+        this.tokenHolder = tokenHolder;
     }
     
     /**
@@ -25,8 +28,10 @@ public class OrnamentoServiceClient {
      */
     public Discount getProductDiscount(UUID productId) {
         try {
+            String token = tokenHolder.getToken();
             OrnamentoDiscountResponse response = webClient.get()
                     .uri("/promotions/{productId}", productId)
+                    .header("Authorization", "Bearer " + token)
                     .retrieve()
                     .bodyToMono(OrnamentoDiscountResponse.class)
                     .timeout(Duration.ofSeconds(5))
@@ -57,8 +62,10 @@ public class OrnamentoServiceClient {
      */
     public Long getProductDiscountId(UUID productId) {
         try {
+            String token = tokenHolder.getToken();
             OrnamentoDiscountResponse response = webClient.get()
                     .uri("/promotions/{productId}", productId)
+                    .header("Authorization", "Bearer " + token)
                     .retrieve()
                     .bodyToMono(OrnamentoDiscountResponse.class)
                     .timeout(Duration.ofSeconds(5))
@@ -82,8 +89,10 @@ public class OrnamentoServiceClient {
 
     public boolean addNewProductDiscount(OrnamentoDiscountRequest request) {
         try {
+            String token = tokenHolder.getToken();
             webClient.post()
                     .uri("/promotions")
+                    .header("Authorization", "Bearer " + token)
                     .bodyValue(request)
                     .retrieve()
                     .bodyToMono(Void.class)
@@ -103,8 +112,10 @@ public class OrnamentoServiceClient {
      */
     public boolean updateProductDiscount(String promotionId, OrnamentoDiscountRequest request) {
         try {
+            String token = tokenHolder.getToken();
             webClient.put()
                     .uri("/promotions/{promotionId}", promotionId)
+                    .header("Authorization", "Bearer " + token)
                     .bodyValue(request)
                     .retrieve()
                     .bodyToMono(Void.class)
@@ -125,8 +136,10 @@ public class OrnamentoServiceClient {
      */
     public boolean deleteProductDiscount(String promotionId) {
         try {
+            String token = tokenHolder.getToken();
             webClient.delete()
                     .uri("/promotions/{promotionId}", promotionId)
+                    .header("Authorization", "Bearer " + token)
                     .retrieve()
                     .bodyToMono(Void.class)
                     .timeout(Duration.ofSeconds(5))

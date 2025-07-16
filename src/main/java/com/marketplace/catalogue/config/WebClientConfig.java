@@ -16,7 +16,7 @@ public class WebClientConfig {
     @Bean
     public WebClient ariaClient() { // Auth service
         return WebClient.builder()
-                .baseUrl("http://aria-service")
+                .baseUrl("https://aria-team-collaboration-2.onrender.com")
                 .build();
     }
 
@@ -30,7 +30,7 @@ public class WebClientConfig {
     @Bean
     public WebClient scenaClient() { // Media service
         return WebClient.builder()
-                .baseUrl("http://scena-service")
+                .baseUrl("https://scena-service-lazycode12-lazycode12s-projects.vercel.app")
                 .build();
     }
 
@@ -44,7 +44,7 @@ public class WebClientConfig {
     @Bean
     public WebClient ornamentoClient() { // Promotions service
         return WebClient.builder()
-                .baseUrl("http://ornamento-service")
+                .baseUrl("https://ornamento-api-tjvp.vercel.app")
                 .build();
     }
 

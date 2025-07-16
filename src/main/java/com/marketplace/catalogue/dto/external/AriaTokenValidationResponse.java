@@ -19,6 +19,6 @@ public class AriaTokenValidationResponse {
     @JsonProperty("email")
     private String email;
     
-    @JsonProperty("expiresAt")
-    private String expiresAt;
+    @JsonProperty("role")
+    private String role;
 }

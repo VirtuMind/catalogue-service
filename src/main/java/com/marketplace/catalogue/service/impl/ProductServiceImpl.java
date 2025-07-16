@@ -167,42 +167,42 @@ public class ProductServiceImpl implements ProductService {
         product.setName(input.getName());
         product.setDescription(input.getDescription());
         product.setCategoryId(input.getCategoryId());
-        product.setStatus(ProductStatus.valueOf(input.getStatus().toUpperCase()));
+        product.setStatus(ProductStatus.valueOf(input.getStatus().toLowerCase()));
         product.setBasePrice(input.getBasePrice());
 
         // Save product in DB first
         Product savedProduct = productRepository.save(product);
         
         // Upload thumbnail to SCENA service
-        if (input.getThumbnailFile() != null && !input.getThumbnailFile().isEmpty()) {
-            ScenaUploadResponse thumbnailResponse = scenaServiceClient.uploadThumbnail(
-                    input.getThumbnailFile(), savedProduct.getId());
-            if (thumbnailResponse == null) {
-                throw new RuntimeException("Failed to upload thumbnail to media service");
-            }
-        }
-        
-        // Upload additional media files to SCENA service (loop through each file)
-        if (input.getMediaFiles() != null && !input.getMediaFiles().isEmpty()) {
-            for (MultipartFile mediaFile : input.getMediaFiles()) {
-                ScenaUploadResponse mediaResponse = scenaServiceClient.uploadMediaFile(
-                        mediaFile, savedProduct.getId());
-                if (mediaResponse == null) {
-                    // Log warning but don't fail the entire operation
-                    System.err.println("Warning: Failed to upload media file " + mediaFile.getOriginalFilename());
-                }
-            }
-        }
+//        if (input.getThumbnailFile() != null && !input.getThumbnailFile().isEmpty()) {
+//            ScenaUploadResponse thumbnailResponse = scenaServiceClient.uploadMediaFile(
+//                    input.getThumbnailFile(), savedProduct.getId(), true);
+//            if (thumbnailResponse == null) {
+//                throw new RuntimeException("Failed to upload thumbnail to media service");
+//            }
+//        }
+//
+//        // Upload additional media files to SCENA service (loop through each file)
+//        if (input.getMediaFiles() != null && !input.getMediaFiles().isEmpty()) {
+//            for (MultipartFile mediaFile : input.getMediaFiles()) {
+//                ScenaUploadResponse mediaResponse = scenaServiceClient.uploadMediaFile(
+//                        mediaFile, savedProduct.getId(), false);
+//                if (mediaResponse == null) {
+//                    // Log warning but don't fail the entire operation
+//                    System.err.println("Warning: Failed to upload media file " + mediaFile.getOriginalFilename());
+//                }
+//            }
+//        }
 
         // Send inventory to METRONOME service
-        MetronomeInventoryRequest request = new MetronomeInventoryRequest(
-                savedProduct.getId().toString(),
-                input.getInventory()
-        );
-        boolean result =  metronomeServiceClient.increaseProductInventory(request);
-        if (!result) {
-            throw new RuntimeException("Failed to add product inventory in METRONOME service");
-        }
+//        MetronomeInventoryRequest request = new MetronomeInventoryRequest(
+//                savedProduct.getId().toString(),
+//                input.getInventory()
+//        );
+//        boolean result =  metronomeServiceClient.increaseProductInventory(request);
+//        if (!result) {
+//            throw new RuntimeException("Failed to add product inventory in METRONOME service");
+//        }
 
         // Send discount to ORNAMENTO service if provided
         if (input.getDiscount() != null) {
@@ -233,13 +233,16 @@ public class ProductServiceImpl implements ProductService {
         
         // Update thumbnail if provided by deleting the old one and uploading the new one
         if (input.getThumbnailFile() != null && !input.getThumbnailFile().isEmpty()) {
-            // Delete old thumbnail from SCENA service
-            boolean result = scenaServiceClient.deleteThumbnail(existingProduct.getId());
-            if (!result) {
-                throw new RuntimeException("Failed to delete old thumbnail from media service");
+            // Delete old thumbnail from SCENA service by getting the existing thumbnail ID
+            String existingThumbnailId = scenaServiceClient.getThumbnailUrl(productId);
+            if (existingThumbnailId != null) {
+                boolean result = scenaServiceClient.deleteMedia(existingThumbnailId);
+                if (!result) {
+                    throw new RuntimeException("Failed to delete old thumbnail from media service");
+                }
             }
-            ScenaUploadResponse thumbnailResponse = scenaServiceClient.uploadThumbnail(
-                    input.getThumbnailFile(), productId);
+            ScenaUploadResponse thumbnailResponse = scenaServiceClient.uploadMediaFile(
+                    input.getThumbnailFile(), productId, true);
             if (thumbnailResponse == null) {
                 throw new RuntimeException("Failed to upload new thumbnail to media service");
             }
@@ -261,7 +264,7 @@ public class ProductServiceImpl implements ProductService {
             // Upload new media file to SCENA service
             for (MultipartFile mediaFile : input.getMediaFiles()) {
                 ScenaUploadResponse mediaResponse = scenaServiceClient.uploadMediaFile(
-                        mediaFile, productId);
+                        mediaFile, productId, false);
                 if (mediaResponse == null) {
                     throw new RuntimeException("Failed to upload new media file to media service");
                 }

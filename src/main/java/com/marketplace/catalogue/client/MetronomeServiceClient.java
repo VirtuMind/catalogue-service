@@ -1,5 +1,6 @@
 package com.marketplace.catalogue.client;
 
+import com.marketplace.catalogue.config.TokenHolder;
 import com.marketplace.catalogue.dto.external.MetronomeInventoryRequest;
 import com.marketplace.catalogue.dto.external.MetronomeInventoryResponse;
 import org.springframework.stereotype.Component;
@@ -12,9 +13,11 @@ import java.util.UUID;
 public class MetronomeServiceClient {
 
     private final WebClient webClient;
+    private final TokenHolder tokenHolder;
 
-    public MetronomeServiceClient(WebClient metronomeClient) {
+    public MetronomeServiceClient(WebClient metronomeClient, TokenHolder tokenHolder) {
         this.webClient = metronomeClient;
+        this.tokenHolder = tokenHolder;
     }
 
     /**
@@ -25,8 +28,10 @@ public class MetronomeServiceClient {
      */
     public Integer getProductInventory(UUID productId) {
         try {
+            String token = tokenHolder.getToken();
             MetronomeInventoryResponse response = webClient.get()
                     .uri("/inventory/{productId}", productId)
+                    .header("Authorization", "Bearer " + token)
                     .retrieve()
                     .bodyToMono(MetronomeInventoryResponse.class)
                     .timeout(Duration.ofSeconds(5))
@@ -47,8 +52,10 @@ public class MetronomeServiceClient {
      */
     public boolean increaseProductInventory(MetronomeInventoryRequest request) {
         try {
+            String token = tokenHolder.getToken();
             webClient.post()
                     .uri("/inventory/add")
+                    .header("Authorization", "Bearer " + token)
                     .bodyValue(request)
                     .retrieve()
                     .bodyToMono(Void.class)
@@ -68,8 +75,10 @@ public class MetronomeServiceClient {
      */
     public boolean decreaseProductInventory(MetronomeInventoryRequest request) {
         try {
+            String token = tokenHolder.getToken();
             webClient.post()
                     .uri("/inventory/decrease")
+                    .header("Authorization", "Bearer " + token)
                     .bodyValue(request)
                     .retrieve()
                     .bodyToMono(Void.class)

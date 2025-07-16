@@ -15,10 +15,13 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
     
     private final AriaServiceClient ariaServiceClient;
     private final ObjectMapper objectMapper;
-    
-    public AuthenticationInterceptor(AriaServiceClient ariaServiceClient, ObjectMapper objectMapper) {
+    private final TokenHolder tokenHolder;
+
+
+    public AuthenticationInterceptor(AriaServiceClient ariaServiceClient, ObjectMapper objectMapper, TokenHolder tokenHolder) {
         this.ariaServiceClient = ariaServiceClient;
         this.objectMapper = objectMapper;
+        this.tokenHolder = tokenHolder;
     }
     
     @Override
@@ -32,6 +35,9 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
         if (HttpMethod.OPTIONS.matches(request.getMethod())) {
             return true;
         }
+
+        // Clear previous token
+        tokenHolder.clear();
         
         // Extract token from Authorization header
         String authHeader = request.getHeader("Authorization");
@@ -48,7 +54,10 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
             sendErrorResponse(response, ApiResponse.unauthorized("Token invalide ou expiré"));
             return false;
         }
-        
+
+        // Store the token for other services to use
+        tokenHolder.setToken(token);
+
         return true;
     }
     

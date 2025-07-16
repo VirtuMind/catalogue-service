@@ -1,5 +1,6 @@
 package com.marketplace.catalogue.client;
 
+import com.marketplace.catalogue.config.TokenHolder;
 import com.marketplace.catalogue.dto.Reviews;
 import com.marketplace.catalogue.dto.external.EchoReviewResponse;
 import org.springframework.core.ParameterizedTypeReference;
@@ -14,9 +15,11 @@ import java.util.UUID;
 public class EchoServiceClient {
     
     private final WebClient webClient;
+    private final TokenHolder tokenHolder;
     
-    public EchoServiceClient(WebClient echoClient) {
+    public EchoServiceClient(WebClient echoClient, TokenHolder tokenHolder) {
         this.webClient = echoClient;
+        this.tokenHolder = tokenHolder;
     }
     
     /**
@@ -26,8 +29,10 @@ public class EchoServiceClient {
      */
     public Reviews getProductReviews(UUID productId) {
         try {
+            String token = tokenHolder.getToken();
             List<EchoReviewResponse> response = webClient.get()
                     .uri("/avis/{productId}", productId)
+                    .header("Authorization", "Bearer " + token)
                     .retrieve()
                     .bodyToMono(new ParameterizedTypeReference<List<EchoReviewResponse>>() {})
                     .timeout(Duration.ofSeconds(5))

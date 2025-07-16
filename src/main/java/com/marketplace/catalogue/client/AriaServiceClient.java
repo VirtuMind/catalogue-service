@@ -32,7 +32,7 @@ public class AriaServiceClient {
                     .timeout(Duration.ofSeconds(5))
                     .block();
             
-            return response != null && response.isValid();
+            return response != null && response.isValid() && response.getRole().equals("admin");
         } catch (WebClientResponseException e) {
             // Token validation failed
             return false;
